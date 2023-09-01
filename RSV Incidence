@@ -1,0 +1,65 @@
+/* RSV incidence at two hospitals in Atlanta, GA. Looking at the connection between RSV and length of stay between different age group,
+and prevalence of congestive heart failure (CHF) and COPD (chronic obstructive pulmonary disease) in those with RSV.*/
+
+
+-- Total number of patients with RSV over 60 years of age with COPD, CHF or both.
+
+SELECT
+    SUM(CASE WHEN chf = 1 THEN 1 ELSE 0 END) AS CHF
+  , SUM(CASE WHEN copd = 1 THEN 1 ELSE 0 END) AS COPD
+  , SUM(CASE WHEN copd = 1 and chf = 1 THEN 1 ELSE 0 END) AS Both
+FROM RSV
+WHERE age > 60;
+
+-- Ranks average length of hospital stay by age group.
+
+SELECT 
+    CASE
+        WHEN age >= 18 AND age < 40 THEN "18 to 40"
+        WHEN age >= 40 AND age < 50 THEN "40 to 50"
+        WHEN age >= 50 AND age < 60 THEN "50 to 60"
+        WHEN age >= 60 AND age < 70 THEN "60 to 70"
+        WHEN age >= 70 AND age <= 80 THEN "70 to 80"
+        WHEN age >80 THEN "Greater than 80"
+        ELSE "Unknown" 
+    END AS age_group 
+  , RANK() OVER (ORDER BY AVG(length_stay) DESC) AS "Rank"
+  , ROUND(AVG(length_stay),1) AS avg_length_stay
+FROM RSV
+GROUP BY age_group;
+
+-- Adds a column labeling the patients as either adults or seniors. There are not children in this study.
+SELECT
+    *
+  , CASE 
+        WHEN age >= 18 AND age < 55 THEN "Adult"
+        WHEN age >= 55 THEN "Senior"
+        ELSE "Unknown" 
+    END AS age_group
+FROM RSV;
+
+-- Looks at the 10 zip codes with the highest average length of stay, limited to zip codes that have more than 10 cases.
+
+SELECT 
+    zip
+  , ROUND(AVG(length_stay),1) AS avg_length_stay 
+FROM RSV
+GROUP BY zip
+HAVING COUNT(*) > 10
+ORDER BY avg_length_stay DESC LIMIT 10;
+
+--  Joins cities table to look at 10 cities with highest average length of stay, limited to cities with more than 10 cases.
+
+SELECT 
+    city_name
+  , county
+  , ROUND(AVG(length_stay),1) AS avg_length_stay 
+FROM RSV
+JOIN cities 
+    ON RSV.zip = cities.zip_code
+GROUP BY city_name
+HAVING COUNT(*) > 10
+ORDER BY avg_length_stay DESC LIMIT 10;
+
+
+
