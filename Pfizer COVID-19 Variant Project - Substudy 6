@@ -1,0 +1,126 @@
+/* 
+Created table in SQLite3
+Data from patients hospitalized in two hospitals in Atlanta, GA for acute respiratory infection and COVID-19.
+Looking specifically at the relationship between the variant of COVID-19 each patient had (Alpha, Delta, Omicron) and variables
+such as vaccination status, icu admission, and previous COVID-19 infection.
+*/
+
+CREATE TABLE SS6 (
+    id                       INTEGER PRIMARY KEY,
+    variant                  TEXT,
+    sex                      TEXT,
+    age                      INTEGER,
+    length_of_stay           INTEGER,
+    vax_status               TEXT,
+    immuno_status            TEXT,
+    icu_admission            INTEGER,
+    pneumonia                INTEGER,
+    death                    INTEGER,
+    myocardial_dis           INTEGER,
+    asthma                   INTEGER,
+    previous_covid_infection INTEGER,
+    myocardial_inf           INTEGER
+                );
+
+INSERT INTO SS6 (
+                    id,
+                    variant,
+                    sex,
+                    age,
+                    length_of_stay,
+                    vax_status,
+                    immuno_status,
+                    icu_admission,
+                    pneumonia,
+                    death,
+                    myocardial_dis,
+                    asthma,
+                    previous_covid_infection,
+                    myocardial_inf
+                );
+              
+
+-- Produces average age values, rounded to one decimal place, for each COVID-19 variant.
+
+SELECT 
+      variant AS "Variant"
+    , ROUND(AVG(age),1) AS "Average Age" 
+FROM SS6
+GROUP BY variant;
+-- Count of females and males by variant
+SELECT 
+    variant
+  , SUM(CASE WHEN sex = "male" THEN 1 ELSE 0 END) AS "Males"
+  , SUM(CASE WHEN sex = "female" THEN 1 ELSE 0 END) AS "Females" 
+FROM SS6
+GROUP BY variant;
+
+-- Determining the variant where participants had the lowest average age.
+
+WITH average_age AS 
+    (SELECT 
+        variant
+      , AVG(age) AS "avg_age"
+     FROM SS6
+     GROUP BY variant)
+SELECT 
+    variant
+  , MIN(avg_age) FROM average_age;
+
+-- Looking at how many hospitalized patients with each variant had a medical history of asthma
+
+SELECT 
+      variant AS "Variant"
+    , COUNT(asthma) AS "Asthma" 
+FROM SS6
+WHERE asthma = 1
+GROUP BY variant;
+
+-- Count of total deaths and icu admissions by each COVID-19 variant, in descending order of icu admission.
+
+SELECT 
+      variant AS "Variant"
+    , SUM(CASE WHEN icu_admission = 1 THEN 1 ELSE 0 END) AS "Total ICU"
+    , SUM(CASE WHEN death = 1 THEN 1 ELSE 0 END) AS "Total Deaths"  
+FROM SS6
+GROUP BY variant
+ORDER BY "Total ICU" DESC;
+
+-- Looking at how many people died by each variant who were completely vaccinated or boosted.
+
+SELECT 
+    variant
+  , COUNT(death) 
+FROM SS6
+WHERE vax_status = "Full Course" OR vax_status = "Booster+"
+GROUP BY variant
+ORDER BY COUNT(death) DESC;
+
+-- Looking at how many people died by vaccination status.
+
+SELECT 
+    vax_status
+  , COUNT(death) 
+FROM SS6
+WHERE vax_status IS NOT NULL
+GROUP BY vax_status
+ORDER BY COUNT(death) DESC;
+
+-- Total deaths by immunocompetency (immunocompromised or immunocompetent)
+
+SELECT 
+    immuno_status
+  , COUNT(*) AS "Death Count" 
+FROM SS6
+WHERE death = 1
+GROUP BY immuno_status;
+
+-- How many people in each variant group were previously infected with COVID-19? 
+
+SELECT 
+    variant
+  , COUNT(*) AS "Previously Infected" 
+FROM SS6
+WHERE previous_covid_infection = 1
+GROUP BY variant;
+
